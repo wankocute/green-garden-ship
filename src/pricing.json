@@ -1,0 +1,43 @@
+{
+  "donViTinh": "VND",
+  "buocKhoiLuong": 0.5,
+  "khuVuc": {
+    "noi_tinh": {
+      "ten": "Nội tỉnh",
+      "phiBac0": 15000,
+      "phiMoiBacThem": 2500
+    },
+    "noi_mien": {
+      "ten": "Nội miền",
+      "phiBac0": 22000,
+      "phiMoiBacThem": 4000
+    },
+    "lien_mien": {
+      "ten": "Liên miền",
+      "phiBac0": 30000,
+      "phiMoiBacThem": 5500
+    }
+  },
+  "dichVu": {
+    "tieu_chuan": {
+      "ten": "Tiêu chuẩn",
+      "tiLePhuPhi": 0
+    },
+    "nhanh": {
+      "ten": "Nhanh",
+      "tiLePhuPhi": 0.3
+    }
+  },
+  "phuPhi": {
+    "cod": {
+      "ten": "Thu hộ (COD)",
+      "tiLe": 0.008,
+      "toiThieu": 5000
+    },
+    "congKenh": {
+      "ten": "Hàng cồng kềnh",
+      "phi": 20000,
+      "nguongTheTich": 30000
+    }
+  }
+}
