@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
       password: pass,
       tinh,
       diaChi,
-      vouchers: [...MA_TANG_ACC_MOI], // ví mã: 2 mã tặng
+      vouchers: [...MA_TANG_ACC_MOI],
     });
     localStorage.setItem("users", JSON.stringify(users));
     return { ok: true, message: "Đăng ký thành công! Bạn được tặng 2 mã giảm giá." };

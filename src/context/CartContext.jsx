@@ -7,13 +7,10 @@ export function useCart() {
 }
 
 export function CartProvider({ children }) {
-  // Khởi tạo giỏ hàng từ localStorage (nếu có)
   const [cart, setCart] = useState(() => {
     const saved = localStorage.getItem("cart");
     return saved ? JSON.parse(saved) : [];
   });
-
-  // Mỗi khi giỏ thay đổi -> lưu lại localStorage
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart));
   }, [cart]);
@@ -31,7 +28,7 @@ export function CartProvider({ children }) {
     });
   }
 
-  // Đổi số lượng (change = +1 hoặc -1)
+  // Đổi số lượng
   function doiSoLuong(id, change) {
     setCart((cu) =>
       cu.map((i) =>

@@ -62,7 +62,6 @@ export default function Chatbot() {
     setDangXuLy(true);
 
     try {
-      // ===== BƯỚC 1: AI bóc tách nhu cầu + nhận diện TỈNH khách nói (nếu có) =====
       const promptBocTach = `Bạn là bộ phân tích nhu cầu mua cây cảnh của shop Green Garden (shop đặt tại ${TINH_SHOP}).
 
 CÁC DANH MỤC CÂY: ${DANH_MUC.join(", ")}
@@ -77,13 +76,11 @@ Trả về DUY NHẤT một object JSON (không markdown):
       const raw = (await goiGemini(promptBocTach)).replace(/```json|```/g, "").trim();
       const nhuCau = JSON.parse(raw);
 
-      // Ưu tiên: tỉnh khách nói trong câu > tỉnh tài khoản > mặc định Cần Thơ
       const tinhDung = nhuCau.tinhKhach || tinhKhachMacDinh || TINH_SHOP;
       const maKhuVuc = suyRaKhuVuc(tinhDung);
       const maDichVu = nhuCau.maDichVu || "tieu_chuan";
       const tenKhuVuc = pricing.khuVuc[maKhuVuc].ten;
 
-      // ===== BƯỚC 2: CODE tính ship cho từng cây phù hợp =====
       let danhSach = products;
       if (nhuCau.danhMuc) {
         danhSach = products.filter((p) =>
@@ -115,8 +112,6 @@ Trả về DUY NHẤT một object JSON (không markdown):
       const bangKetQua = loc
         .map((r) => `${r.ten}: giá cây ${dinhDang(r.gia)}, phí ship ${dinhDang(r.phiShip)}`)
         .join("\n");
-
-      // ===== BƯỚC 3: AI diễn đạt thành lời tư vấn =====
       const promptTuVan = `Bạn là nhân viên tư vấn thân thiện của shop cây Green Garden, shop đặt tại ${TINH_SHOP}.
 
 Khách yêu cầu: "${cauHoi}"

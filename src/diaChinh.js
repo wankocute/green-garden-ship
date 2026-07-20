@@ -1,10 +1,3 @@
-// ============================================================
-//  DỮ LIỆU HÀNH CHÍNH - 34 tỉnh thành sau sáp nhập (từ 1/7/2025)
-//  Mỗi tỉnh gán 1 miền: "bac" | "trung" | "nam"
-//  Dùng để suy ra khu vực ship dựa trên tỉnh shop và tỉnh khách.
-// ============================================================
-
-// Tỉnh đặt shop (điểm gửi hàng)
 export const TINH_SHOP = "Cần Thơ";
 
 // Danh sách 34 tỉnh thành + miền
@@ -56,12 +49,6 @@ export function layMien(tenTinh) {
   return t ? t.mien : null;
 }
 
-// ============================================================
-//  SUY RA KHU VỰC SHIP dựa trên tỉnh shop và tỉnh khách
-//  - Cùng tỉnh với shop        -> noi_tinh
-//  - Khác tỉnh nhưng cùng miền  -> noi_mien
-//  - Khác miền                  -> lien_mien
-// ============================================================
 export function suyRaKhuVuc(tinhKhach) {
   if (!tinhKhach) return "noi_tinh";
   if (tinhKhach === TINH_SHOP) return "noi_tinh";

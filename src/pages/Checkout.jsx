@@ -26,7 +26,7 @@ export default function Checkout() {
 
   // Mã giảm giá
   const [maNhap, setMaNhap] = useState("");
-  const [maDaAp, setMaDaAp] = useState(null); // { ma, giamTien, giamShip }
+  const [maDaAp, setMaDaAp] = useState(null);
   const [thongBaoMa, setThongBaoMa] = useState("");
 
   if (cart.length === 0 && !datThanhCong) {

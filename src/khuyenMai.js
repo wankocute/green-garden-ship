@@ -1,10 +1,3 @@
-// ============================================================
-//  HỆ THỐNG MÃ GIẢM GIÁ (VOUCHER)
-// ============================================================
-// loai: "giam_tien" (giảm vào tiền hàng) | "freeship" (giảm phí ship)
-// donToiThieu: đơn hàng (tiền hàng) phải >= mức này mới áp được
-// giaTri: số tiền giảm (với freeship: số tiền ship được giảm tối đa)
-
 export const danhSachMa = {
   GIAM30K: {
     ma: "GIAM30K",
@@ -23,26 +16,21 @@ export const danhSachMa = {
   FREESHIP: {
     ma: "FREESHIP",
     loai: "freeship",
-    giaTri: 30000, // miễn tối đa 30k tiền ship
+    giaTri: 30000,
     donToiThieu: 150000,
     moTa: "Miễn phí ship (tối đa 30.000đ) cho đơn từ 150.000đ",
   },
   FREESHIPXL: {
     ma: "FREESHIPXL",
     loai: "freeship",
-    giaTri: 100000, // miễn tối đa 100k tiền ship
+    giaTri: 100000,
     donToiThieu: 500000,
     moTa: "Miễn phí ship (tối đa 100.000đ) cho đơn từ 500.000đ",
   },
 };
 
-// 2 mã tặng khi tạo tài khoản mới
 export const MA_TANG_ACC_MOI = ["GIAM30K", "FREESHIP"];
 
-// ============================================================
-//  Kiểm tra & áp mã
-//  Trả về { ok, message, giamTien, giamShip }
-// ============================================================
 export function apMaGiamGia(ma, tienHang, phiShip) {
   const voucher = danhSachMa[ma];
 
@@ -69,7 +57,6 @@ export function apMaGiamGia(ma, tienHang, phiShip) {
     };
   }
 
-  // freeship: giảm phí ship, tối đa bằng giaTri (không giảm quá phí ship thực tế)
   const giamShip = Math.min(phiShip, voucher.giaTri);
   return {
     ok: true,
@@ -79,11 +66,7 @@ export function apMaGiamGia(ma, tienHang, phiShip) {
   };
 }
 
-// ============================================================
-//  ƯỚC TÍNH THỜI GIAN GIAO theo khu vực + loại dịch vụ
-// ============================================================
 export function uocTinhThoiGian(maKhuVuc, maDichVu) {
-  // Số ngày giao [tiêu chuẩn] theo khu vực
   const bang = {
     noi_tinh: { tieu_chuan: "1 - 2 ngày", nhanh: "trong 24 giờ" },
     noi_mien: { tieu_chuan: "2 - 3 ngày", nhanh: "1 - 2 ngày" },
