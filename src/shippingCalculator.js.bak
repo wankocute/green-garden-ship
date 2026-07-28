@@ -51,22 +51,20 @@ export function tinhPhiVanChuyen(donHang) {
     dai,
     rong,
     cao,
-    theTich,
     maKhuVuc,
     maDichVu,
     coCOD,
     giaTriDonHang,
   } = donHang;
 
-  const theTichKien = theTich ?? dai * rong * cao;
-  const khoiLuongQuyDoi = quyDoiTuTheTich(theTichKien);
-  const khoiLuongTinhPhi = Math.max(khoiLuongThuc, khoiLuongQuyDoi);
+  const khoiLuongQuyDoi = tinhKhoiLuongQuyDoi(dai, rong, cao);
+  const khoiLuongTinhPhi = layKhoiLuongTinhPhi(khoiLuongThuc, dai, rong, cao);
 
   const phiCoBan = tinhPhiCoBan(khoiLuongTinhPhi, maKhuVuc);
 
   const phuPhiDichVu = tinhPhuPhiDichVu(phiCoBan, maDichVu);
   const phuPhiCOD = coCOD ? tinhPhuPhiCOD(giaTriDonHang) : 0;
-  const phuPhiCongKenh = tinhPhuPhiCongKenhTheoTheTich(theTichKien);
+  const phuPhiCongKenh = tinhPhuPhiCongKenh(dai, rong, cao);
 
   const tongPhi = phiCoBan + phuPhiDichVu + phuPhiCOD + phuPhiCongKenh;
 
@@ -82,27 +80,4 @@ export function tinhPhiVanChuyen(donHang) {
     },
     tongPhi,
   };
-}
-
-// ============================================================
-//  GOP KIEN CHO DON NHIEU SAN PHAM
-//  Cong don the tich tat ca san pham (co nhan so luong),
-//  thay vi lay kich thuoc lon nhat tung chieu.
-// ============================================================
-export function tinhTongTheTich(danhSach) {
-  return danhSach.reduce(
-    (tong, i) => tong + i.dim.dai * i.dim.rong * i.dim.cao * (i.quantity || 1),
-    0
-  );
-}
-
-// Quy doi tu the tich (cm3) sang kg
-export function quyDoiTuTheTich(theTich) {
-  return theTich / 6000;
-}
-
-// Phu phi cong kenh xet theo the tich ca don
-export function tinhPhuPhiCongKenhTheoTheTich(theTich) {
-  const ck = pricing.phuPhi.congKenh;
-  return theTich > ck.nguongTheTich ? ck.phi : 0;
 }

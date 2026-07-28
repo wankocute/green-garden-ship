@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import { tinhPhiVanChuyen, tinhTongTheTich } from "../shippingCalculator";
+import { tinhPhiVanChuyen } from "../shippingCalculator";
 import pricing from "../pricing.json";
 import { tinhThanh, suyRaKhuVuc, TINH_SHOP } from "../diaChinh";
 import { apMaGiamGia, uocTinhThoiGian, danhSachMa } from "../khuyenMai";
@@ -44,11 +44,20 @@ export default function Checkout() {
   const thoiGianGiao = uocTinhThoiGian(maKhuVuc, maDichVu);
 
   const tongKhoiLuong = cart.reduce((s, i) => s + i.weight * i.quantity, 0);
-  const tongTheTich = tinhTongTheTich(cart);
+  const maxDim = cart.reduce(
+    (m, i) => ({
+      dai: Math.max(m.dai, i.dim.dai),
+      rong: Math.max(m.rong, i.dim.rong),
+      cao: Math.max(m.cao, i.dim.cao),
+    }),
+    { dai: 0, rong: 0, cao: 0 }
+  );
 
   const kqShip = tinhPhiVanChuyen({
     khoiLuongThuc: tongKhoiLuong,
-    theTich: tongTheTich,
+    dai: maxDim.dai,
+    rong: maxDim.rong,
+    cao: maxDim.cao,
     maKhuVuc,
     maDichVu,
     coCOD,
