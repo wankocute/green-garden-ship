@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { products } from "../products";
 
 const CartContext = createContext();
 
@@ -7,9 +8,32 @@ export function useCart() {
 }
 
 export function CartProvider({ children }) {
+  const SL_TOI_DA = 99;
+
+  // Giỏ trong localStorage có thể là bản CŨ, thiếu dim/weight (hoặc giá đã đổi).
+  // Thiếu dim => thể tích = 0 => khối lượng quy đổi = 0 => TÍNH THIẾU phí ship.
+  // Nên mỗi lần khởi động ta lấy lại thông số gốc từ products.js theo id,
+  // chỉ giữ lại số lượng của khách.
   const [cart, setCart] = useState(() => {
-    const saved = localStorage.getItem("cart");
-    return saved ? JSON.parse(saved) : [];
+    let saved;
+    try {
+      saved = JSON.parse(localStorage.getItem("cart"));
+    } catch {
+      saved = null;
+    }
+    if (!Array.isArray(saved)) return [];
+
+    return saved
+      .map((i) => {
+        const goc = products.find((p) => p.id === i?.id);
+        if (!goc) return null; // sản phẩm đã gỡ khỏi shop
+        const sl = Math.floor(Number(i?.quantity));
+        return {
+          ...goc,
+          quantity: Number.isFinite(sl) && sl > 0 ? Math.min(SL_TOI_DA, sl) : 1,
+        };
+      })
+      .filter(Boolean);
   });
   useEffect(() => {
     localStorage.setItem("cart", JSON.stringify(cart));
@@ -21,7 +45,9 @@ export function CartProvider({ children }) {
       const daCo = cu.find((i) => i.id === sanPham.id);
       if (daCo) {
         return cu.map((i) =>
-          i.id === sanPham.id ? { ...i, quantity: i.quantity + soLuong } : i
+          i.id === sanPham.id
+            ? { ...i, quantity: Math.min(SL_TOI_DA, i.quantity + soLuong) }
+            : i
         );
       }
       return [...cu, { ...sanPham, quantity: soLuong }];
@@ -32,7 +58,9 @@ export function CartProvider({ children }) {
   function doiSoLuong(id, change) {
     setCart((cu) =>
       cu.map((i) =>
-        i.id === id ? { ...i, quantity: Math.max(1, i.quantity + change) } : i
+        i.id === id
+          ? { ...i, quantity: Math.min(SL_TOI_DA, Math.max(1, i.quantity + change)) }
+          : i
       )
     );
   }

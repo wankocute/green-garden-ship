@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { products } from "./products";
 import { tinhPhiVanChuyen, layCauHinhKhuVuc } from "./shippingCalculator";
-import { tinhThanh, suyRaKhuVuc, TINH_SHOP } from "./diaChinh";
+import { tinhThanh, suyRaKhuVuc, TINH_SHOP, chuanHoaTenTinh } from "./diaChinh";
 import { useAuth } from "./context/AuthContext";
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
@@ -98,7 +98,11 @@ Trả về DUY NHẤT một object JSON (không markdown):
       const raw = (await goiGemini(promptBocTach)).replace(/```json|```/g, "").trim();
       const nhuCau = JSON.parse(raw);
 
-      const tinhDung = nhuCau.tinhKhach || tinhKhachMacDinh || TINH_SHOP;
+      // Gemini hay trả 'TP.HCM' / 'Sài Gòn' -> phải nắn về đúng tên trong bảng
+      const tinhDung =
+        chuanHoaTenTinh(nhuCau.tinhKhach) ||
+        chuanHoaTenTinh(tinhKhachMacDinh) ||
+        TINH_SHOP;
       const maKhuVuc = suyRaKhuVuc(tinhDung);
       const maDichVu = nhuCau.maDichVu || "tieu_chuan";
       const tenKhuVuc = layCauHinhKhuVuc(maKhuVuc).ten;
