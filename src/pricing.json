@@ -45,7 +45,6 @@
     "congKenh": {
       "ten": "Hàng cồng kềnh",
       "phi": 20000,
-      "nguongTheTich": 30000,
       "nguongTheTichKien": 30000,
       "nguongChieuDaiCm": 100
     }

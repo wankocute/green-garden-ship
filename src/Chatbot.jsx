@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { products } from "./products";
-import { tinhPhiVanChuyen } from "./shippingCalculator";
-import pricing from "./pricing.json";
+import { tinhPhiVanChuyen, layCauHinhKhuVuc } from "./shippingCalculator";
 import { tinhThanh, suyRaKhuVuc, TINH_SHOP } from "./diaChinh";
 import { useAuth } from "./context/AuthContext";
 
@@ -11,6 +10,29 @@ const GEMINI_URL =
 
 function dinhDang(so) {
   return so.toLocaleString("vi-VN") + " đ";
+}
+
+/**
+ * Đổi markdown thô của Gemini thành JSX cho 1 dòng text.
+ *  **đậm**  -> <b>đậm</b>
+ *  # tiêu đề, * lẻ, ` code -> dọn sạch
+ * Không dùng dangerouslySetInnerHTML nên không lo XSS.
+ */
+function renderDong(dong) {
+  const sach = dong
+    .replace(/^\s*#{1,6}\s*/, "")   // bỏ ký hiệu tiêu đề đầu dòng
+    .replace(/`/g, "");             // bỏ dấu backtick
+
+  return sach
+    .split(/(\*\*[^*]+\*\*)/g)
+    .filter(Boolean)
+    .map((phan, k) =>
+      phan.startsWith("**") && phan.endsWith("**") ? (
+        <b key={k}>{phan.slice(2, -2)}</b>
+      ) : (
+        <span key={k}>{phan.replace(/\*/g, "")}</span>
+      )
+    );
 }
 
 async function goiGemini(prompt) {
@@ -79,7 +101,7 @@ Trả về DUY NHẤT một object JSON (không markdown):
       const tinhDung = nhuCau.tinhKhach || tinhKhachMacDinh || TINH_SHOP;
       const maKhuVuc = suyRaKhuVuc(tinhDung);
       const maDichVu = nhuCau.maDichVu || "tieu_chuan";
-      const tenKhuVuc = pricing.khuVuc[maKhuVuc].ten;
+      const tenKhuVuc = layCauHinhKhuVuc(maKhuVuc).ten;
 
       let danhSach = products;
       if (nhuCau.danhMuc) {
@@ -100,7 +122,12 @@ Trả về DUY NHẤT một object JSON (không markdown):
           coCOD: !!nhuCau.coCOD,
           giaTriDonHang: p.price,
         });
-        return { ten: p.name, gia: p.price, phiShip: kq.tongPhi };
+        return {
+          ten: p.name,
+          gia: p.price,
+          phiShip: kq.phiVanChuyen, // cước thuần, KHÔNG gồm COD
+          phiCOD: kq.chiTiet.phuPhiCOD,
+        };
       });
 
       let loc = ketQua;
@@ -110,7 +137,11 @@ Trả về DUY NHẤT một object JSON (không markdown):
       loc.sort((a, b) => a.phiShip - b.phiShip);
 
       const bangKetQua = loc
-        .map((r) => `${r.ten}: giá cây ${dinhDang(r.gia)}, phí ship ${dinhDang(r.phiShip)}`)
+        .map(
+          (r) =>
+            `${r.ten}: giá cây ${dinhDang(r.gia)}, phí ship ${dinhDang(r.phiShip)}` +
+            (r.phiCOD > 0 ? `, phí thu hộ ${dinhDang(r.phiCOD)}` : "")
+        )
         .join("\n");
       const promptTuVan = `Bạn là nhân viên tư vấn thân thiện của shop cây Green Garden, shop đặt tại ${TINH_SHOP}.
 
@@ -121,7 +152,7 @@ ${nhuCau.nganSachShip ? `Ngân sách ship tối đa: ${dinhDang(nhuCau.nganSachS
 DỮ LIỆU SHIP ĐÃ TÍNH SẴN (BẮT BUỘC dùng đúng số này, không bịa):
 ${bangKetQua || "(Không có cây nào phù hợp ngân sách ship)"}
 
-Tư vấn ngắn gọn, thân thiện bằng tiếng Việt. Có nhắc tới việc giao hàng đi ${tinhDung} (${tenKhuVuc}). Gợi ý 2-3 cây hợp nhất (ưu tiên ship rẻ), nêu rõ phí ship từng cây. Nếu không cây nào trong ngân sách, nói thật và gợi ý cây ship thấp nhất. KHÔNG bịa thêm cây ngoài danh sách.`;
+Tư vấn ngắn gọn, thân thiện bằng tiếng Việt. Có nhắc tới việc giao hàng đi ${tinhDung} (${tenKhuVuc}). Gợi ý 2-3 cây hợp nhất (ưu tiên ship rẻ), nêu rõ phí ship từng cây. Nếu không cây nào trong ngân sách, nói thật và gợi ý cây ship thấp nhất. KHÔNG bịa thêm cây ngoài danh sách. Viết văn xuôi thuần tiếng Việt, KHÔNG dùng ký hiệu markdown (dấu sao, dấu thăng, gạch đầu dòng) và không kẻ bảng. Muốn liệt kê thì đánh số 1. 2. 3. bình thường.`;
 
       const traLoi = await goiGemini(promptTuVan);
       setMessages((m) => [...m, { role: "assistant", text: traLoi.trim() }]);
@@ -150,7 +181,7 @@ Tư vấn ngắn gọn, thân thiện bằng tiếng Việt. Có nhắc tới vi
             {messages.map((m, i) => (
               <div key={i} className={`chat-msg ${m.role}`}>
                 {m.text.split("\n").map((d, j) => (
-                  <div key={j}>{d}</div>
+                  <div key={j}>{renderDong(d)}</div>
                 ))}
               </div>
             ))}

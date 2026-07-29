@@ -24,3 +24,6 @@ dist-ssr
 *.sln
 *.sw?
 .backup-ship-*/
+
+# file backup tạm
+*.bak

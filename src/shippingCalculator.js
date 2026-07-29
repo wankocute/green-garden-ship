@@ -41,6 +41,8 @@ export function layCauHinhDichVu(maDichVu) {
   );
 }
 
+// [API cũ] Hai hàm dưới không còn được tinhPhiVanChuyen gọi (nó tính theo
+// tổng thể tích cả đơn). Giữ lại để Chatbot / demo / unit test dùng riêng.
 export function tinhKhoiLuongQuyDoi(dai, rong, cao) {
   return (soDuong(dai) * soDuong(rong) * soDuong(cao)) / heSoQuyDoi();
 }
@@ -89,6 +91,9 @@ export function kienBiCongKenh(dim) {
   return dai * rong * cao > ck.theTich || canhDaiNhat > ck.chieuDai;
 }
 
+// [Quy tắc] Phụ phí cồng kềnh thu MỘT LẦN cho cả đơn nếu có ÍT NHẤT MỘT kiện
+// vượt ngưỡng (thể tích hoặc cạnh dài nhất). Theo thông lệ các hãng VN:
+// đây là phụ phí xử lý/bốc xếp của chuyến giao, không nhân theo số kiện.
 export function tinhPhuPhiCongKenh(a, rong, cao) {
   const ck = nguongCongKenh();
   if (Array.isArray(a)) {
