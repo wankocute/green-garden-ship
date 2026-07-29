@@ -2,13 +2,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
-import { tinhPhiVanChuyen, tinhTongTheTich } from "../shippingCalculator";
+import {
+  tinhPhiVanChuyen,
+  tinhPhuPhiCOD,
+  layCauHinhKhuVuc,
+} from "../shippingCalculator";
 import pricing from "../pricing.json";
 import { tinhThanh, suyRaKhuVuc, TINH_SHOP } from "../diaChinh";
 import { apMaGiamGia, uocTinhThoiGian, danhSachMa } from "../khuyenMai";
 
 function dinhDang(so) {
-  return so.toLocaleString("vi-VN") + " đ";
+  return Number(so || 0).toLocaleString("vi-VN") + " đ";
 }
 
 export default function Checkout() {
@@ -24,7 +28,7 @@ export default function Checkout() {
   const [coCOD, setCoCOD] = useState(false);
   const [datThanhCong, setDatThanhCong] = useState(false);
 
-  // Mã giảm giá
+  // Mã giảm giá — CHỈ lưu chuỗi mã, số tiền giảm được tính lại mỗi lần render.
   const [maNhap, setMaNhap] = useState("");
   const [maDaAp, setMaDaAp] = useState(null);
   const [thongBaoMa, setThongBaoMa] = useState("");
@@ -40,26 +44,30 @@ export default function Checkout() {
 
   // Suy ra khu vực + tính ship
   const maKhuVuc = suyRaKhuVuc(tinh);
-  const tenKhuVuc = pricing.khuVuc[maKhuVuc].ten;
+  const tenKhuVuc = layCauHinhKhuVuc(maKhuVuc).ten;
   const thoiGianGiao = uocTinhThoiGian(maKhuVuc, maDichVu);
 
-  const tongKhoiLuong = cart.reduce((s, i) => s + i.weight * i.quantity, 0);
-  const tongTheTich = tinhTongTheTich(cart);
+  // Cước vận chuyển thuần — CHƯA gồm COD.
+  // Truyền cả giỏ hàng để phụ phí cồng kềnh xét theo TỪNG KIỆN.
+  const kqShip = tinhPhiVanChuyen({ items: cart, maKhuVuc, maDichVu });
 
-  const kqShip = tinhPhiVanChuyen({
-    khoiLuongThuc: tongKhoiLuong,
-    theTich: tongTheTich,
-    maKhuVuc,
-    maDichVu,
-    coCOD,
-    giaTriDonHang: tongTienHang,
-  });
+  // Tính lại voucher MỖI LẦN RENDER: đổi tỉnh / dịch vụ / giỏ hàng là cập nhật ngay.
+  const kqMa = maDaAp
+    ? apMaGiamGia(maDaAp, tongTienHang, kqShip.phiVanChuyen)
+    : null;
+  const maOk = !!(kqMa && kqMa.ok);
+  const giamTien = maOk ? kqMa.giamTien : 0;
+  const giamShip = maOk ? kqMa.giamShip : 0;
 
-  // Áp giảm giá (nếu có mã đã áp)
-  const giamTien = maDaAp?.giamTien || 0;
-  const giamShip = maDaAp?.giamShip || 0;
-  const phiShipSauGiam = Math.max(0, kqShip.tongPhi - giamShip);
-  const tongCuoiCung = Math.max(0, tongTienHang - giamTien) + phiShipSauGiam;
+  // Freeship chỉ giảm trên cước vận chuyển, không đụng tới phí COD.
+  const phiShipSauGiam = Math.max(0, kqShip.phiVanChuyen - giamShip);
+  const tienHangSauGiam = Math.max(0, tongTienHang - giamTien);
+
+  // Phí COD tính trên SỐ TIỀN THỰC SỰ THU HỘ, không phải tiền hàng gốc.
+  const tienThuHo = tienHangSauGiam + phiShipSauGiam;
+  const phiCOD = coCOD ? tinhPhuPhiCOD(tienThuHo) : 0;
+
+  const tongCuoiCung = tienThuHo + phiCOD;
 
   // Mã trong ví của user (nếu đăng nhập)
   const viMa = currentUser?.vouchers || [];
@@ -67,9 +75,9 @@ export default function Checkout() {
   function thuApMa(ma) {
     const code = (ma || maNhap).trim().toUpperCase();
     if (!code) return;
-    const kq = apMaGiamGia(code, tongTienHang, kqShip.tongPhi);
+    const kq = apMaGiamGia(code, tongTienHang, kqShip.phiVanChuyen);
     if (kq.ok) {
-      setMaDaAp({ ma: code, giamTien: kq.giamTien, giamShip: kq.giamShip });
+      setMaDaAp(code);
       setThongBaoMa("✓ " + kq.message);
       setMaNhap(code);
     } else {
@@ -89,6 +97,10 @@ export default function Checkout() {
       alert("Vui lòng điền đầy đủ họ tên, SĐT, tỉnh/thành và địa chỉ!");
       return;
     }
+    if (kqShip.vuotGioiHan) {
+      alert(kqShip.canhBao.join("\n"));
+      return;
+    }
     const orders = JSON.parse(localStorage.getItem("orders")) || [];
     orders.push({
       id: "DH" + Date.now(),
@@ -100,15 +112,16 @@ export default function Checkout() {
       items: cart,
       tienHang: tongTienHang,
       phiShip: phiShipSauGiam,
-      maGiamGia: maDaAp?.ma || null,
+      phiCOD,
+      maGiamGia: maDaAp || null,
       total: tongCuoiCung,
       userEmail: currentUser?.email || "khach",
     });
     localStorage.setItem("orders", JSON.stringify(orders));
 
     // Nếu dùng mã từ ví user thì gỡ mã đó đi
-    if (maDaAp && viMa.includes(maDaAp.ma)) {
-      dungMa(maDaAp.ma);
+    if (maDaAp && viMa.includes(maDaAp)) {
+      dungMa(maDaAp);
     }
 
     xoaHetGio();
@@ -198,8 +211,14 @@ export default function Checkout() {
                 <button className="btn-voucher" onClick={() => thuApMa()}>Áp dụng</button>
               )}
             </div>
-            {thongBaoMa && (
-              <p className={`voucher-msg ${maDaAp ? "ok" : "err"}`}>{thongBaoMa}</p>
+
+            {/* Mã hết hiệu lực do đổi giỏ / đổi tỉnh thì báo ngay */}
+            {maDaAp && !maOk ? (
+              <p className="voucher-msg err">✗ {kqMa?.message}</p>
+            ) : (
+              thongBaoMa && (
+                <p className={`voucher-msg ${maOk ? "ok" : "err"}`}>{thongBaoMa}</p>
+              )
             )}
 
             {/* Ví mã của user */}
@@ -218,13 +237,13 @@ export default function Checkout() {
           <hr />
           <div className="sum-row"><span>Tạm tính</span><b>{dinhDang(tongTienHang)}</b></div>
           {giamTien > 0 && (
-            <div className="sum-row giam"><span>Giảm giá ({maDaAp.ma})</span><b>− {dinhDang(giamTien)}</b></div>
+            <div className="sum-row giam"><span>Giảm giá ({maDaAp})</span><b>− {dinhDang(giamTien)}</b></div>
           )}
 
           <div className="ship-detail">
             <div className="ship-head">
               <span>Phí vận chuyển ({tenKhuVuc})</span>
-              <b className={giamShip > 0 ? "gach" : ""}>{dinhDang(kqShip.tongPhi)}</b>
+              <b className={giamShip > 0 ? "gach" : ""}>{dinhDang(kqShip.phiVanChuyen)}</b>
             </div>
             {giamShip > 0 && (
               <div className="ship-freeship">Freeship: − {dinhDang(giamShip)} → còn {dinhDang(phiShipSauGiam)}</div>
@@ -233,10 +252,17 @@ export default function Checkout() {
               <div><span>KL tính phí</span><span>{kqShip.khoiLuongTinhPhi} kg</span></div>
               <div><span>Phí cơ bản</span><span>{dinhDang(kqShip.chiTiet.phiCoBan)}</span></div>
               {kqShip.chiTiet.phuPhiDichVu > 0 && <div><span>Phụ phí nhanh</span><span>{dinhDang(kqShip.chiTiet.phuPhiDichVu)}</span></div>}
-              {kqShip.chiTiet.phuPhiCOD > 0 && <div><span>Phụ phí COD</span><span>{dinhDang(kqShip.chiTiet.phuPhiCOD)}</span></div>}
               {kqShip.chiTiet.phuPhiCongKenh > 0 && <div><span>Phụ phí cồng kềnh</span><span>{dinhDang(kqShip.chiTiet.phuPhiCongKenh)}</span></div>}
             </div>
           </div>
+
+          {phiCOD > 0 && (
+            <div className="sum-row"><span>Phí thu hộ (COD)</span><b>{dinhDang(phiCOD)}</b></div>
+          )}
+
+          {kqShip.canhBao.length > 0 && (
+            <div className="ship-canh-bao">⚠ {kqShip.canhBao.join(" ")}</div>
+          )}
 
           <hr />
           <div className="sum-row total"><span>Tổng cộng</span><b>{dinhDang(tongCuoiCung)}</b></div>
